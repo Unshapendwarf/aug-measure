@@ -85,7 +85,7 @@ def horizontal_flip(img, flag):
         return img
 
 def main():
-    dir = "stl10/train_images/"
+    dir = "../stl10/train_images/"
     image_dir = os.path.join(dir,"*.png")
     images = sorted(glob.glob(image_dir))
     i = 0
