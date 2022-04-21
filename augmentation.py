@@ -85,8 +85,8 @@ def horizontal_flip(img, flag):
         return img
 
 def main():
-    dir = "/dev/shm/dataset/n01930112"
-    # dir = "../n01930112"
+    # dir = "/dev/shm/dataset/n01930112"
+    dir = "../n01930112"
     image_dir = os.path.join(dir,"*.JPEG")
     images = sorted(glob.glob(image_dir))
     i = 0
