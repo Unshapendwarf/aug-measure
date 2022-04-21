@@ -85,8 +85,9 @@ def horizontal_flip(img, flag):
         return img
 
 def main():
-    dir = "../stl10/train_images/"
-    image_dir = os.path.join(dir,"*.png")
+    dir = "/dev/shm/dataset/n01930112"
+    # dir = "../n01930112"
+    image_dir = os.path.join(dir,"*.JPEG")
     images = sorted(glob.glob(image_dir))
     i = 0
     # print(images[0])
@@ -101,6 +102,8 @@ def main():
         #do augmentation
         img = cv2.imread(fname)
         readtime = time.time()
+        # print(img.shape)
+        
         img = cv2.resize(img, dsize=(88, 88),interpolation=cv2.INTER_LINEAR)
         img = brightness(img, 10)
         img = contrast(img, 1, 1.2)
