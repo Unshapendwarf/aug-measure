@@ -86,7 +86,7 @@ def horizontal_flip(img, flag):
 
 def main():
     # dir = "/dev/shm/dataset/n01930112"
-    dir = "../n01930112"
+    dir = "../../n01930112"
     image_dir = os.path.join(dir,"*.JPEG")
     images = sorted(glob.glob(image_dir))
     i = 0
@@ -99,12 +99,13 @@ def main():
         # set timer
         start = time.time()
 
+        # print(os.path.getsize(fname)/1024)
         #do augmentation
         img = cv2.imread(fname)
         readtime = time.time()
         # print(img.shape)
         
-        img = cv2.resize(img, dsize=(88, 88),interpolation=cv2.INTER_LINEAR)
+        img = cv2.resize(img, dsize=(240, 240),interpolation=cv2.INTER_LINEAR)
         img = brightness(img, 10)
         img = contrast(img, 1, 1.2)
         img = horizontal_flip(img, 1)
