@@ -89,8 +89,8 @@ def main():
     image_dir = os.path.join(dir,"*.png")
     images = sorted(glob.glob(image_dir))
     i = 0
-    print(images[0])
-    print(len(images))
+    # print(images[0])
+    # print(len(images))
 
     for fname in images:
         #open file with opencv
