@@ -1,131 +1,79 @@
+from configparser import Interpolation
+import torch
+from torch.utils.data import Dataset, DataLoader
+import torchvision
+from torchvision import transforms, datasets
+
 import numpy as np
 #import matplotlib.pyplot as plt
 import cv2
+
 import glob
 import random
-
 import time
 import os
 
-def brightness(gray, val):
-    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    brightness = int(random.uniform(-val, val))
-    if brightness > 0:
-        gray = gray + brightness
-    else:
-        gray = gray - brightness
-    gray = np.clip(gray, 10, 255)
-    return gray
 
-def contrast(gray, min_val, max_val):
-    #gray = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    alpha = int(random.uniform(min_val, max_val)) # Contrast control
-    adjusted = cv2.convertScaleAbs(gray, alpha=alpha)
-    return adjusted
+class MyDataset(Dataset):
+    def __init__(self, images, transform=False):
+        '''
+        MyDataset params
+        images_psnrs(list): [(image1_path, image2_path, psnr_sum), ...]
+        '''
+        super(MyDataset, self).__init__()
+        self.images = images
+        self.transform = transform
+        
+    def __getitem__(self, index):
+        image = self.images[index]
+        image = cv2.imread(image)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if self.transform is not None:
+            image = self.transform(image)
+        return image
 
-def fill(img, h, w):
-    img = cv2.resize(img, (h, w), cv2.INTER_CUBIC)
-    return img
+    def __len__(self):
+        return len(self.images)
 
-def rotation(img, angle):
-    angle = int(random.uniform(-angle, angle))
-    h, w = img.shape[:2]
-    M = cv2.getRotationMatrix2D((int(w/2), int(h/2)), angle, 1)
-    img = cv2.warpAffine(img, M, (w, h))
-    return img
-
-def vertical_shift_down(img, ratio=0.0):
-    if ratio > 1 or ratio < 0:
-        print('Value should be less than 1 and greater than 0')
-        return img
-    ratio = random.uniform(-ratio, ratio)
-    h, w = img.shape[:2]
-    to_shift = h*ratio
-    if ratio > 0:
-        img = img[:int(h-to_shift), :, :]
-    img = fill(img, h, w)
-    return img
-
-def vertical_shift_up(img, ratio=0.0):
-    if ratio > 1 or ratio < 0:
-        print('Value should be less than 1 and greater than 0')
-        return img
-    ratio = random.uniform(0.0, ratio)
-    h, w = img.shape[:2]
-    to_shift = h*ratio
-    if ratio > 0:
-        img = img[:int(h-to_shift), :, :]
-    img = fill(img, h, w)
-    return img
-
-def horizontal_shift(img, ratio=0.0):
-    if ratio > 1 or ratio < 0:
-        print('Value should be less than 1 and greater than 0')
-        return img
-    ratio = random.uniform(-ratio, ratio)
-    h, w = img.shape[:2]
-    to_shift = w*ratio
-    if ratio > 0:
-        img = img[:, :int(w-to_shift), :]
-    if ratio < 0:
-        img = img[:, int(-1*to_shift):, :]
-    img = fill(img, h, w)
-    return img
-
-def vertical_flip(img, flag):
-    if flag:
-        return cv2.flip(img, 0)
-    else:
-        return img
-
-def horizontal_flip(img, flag):
-    if flag:
-        return cv2.flip(img, 1)
-    else:
-        return img
+def get_file_list(src_dir, target_list):
+    print("get_file_list")
 
 def main():
     # dir = "/dev/shm/dataset/n01930112"
     dir = "../../n01930112"
     image_dir = os.path.join(dir,"*.JPEG")
     images = sorted(glob.glob(image_dir))
+    
     i = 0
-    # print(images[0])
-    # print(len(images))
+    print(images[0])
+    print(len(images))
+    
+    start_at = time.time()
+    data_transform = torchvision.transforms.Compose([
+                                                    transforms.ToPILImage(),
+                                                    transforms.Resize((240, 240)),
+                                                    transforms.ColorJitter(contrast=0.5, saturation=0.5),
+                                                    transforms.RandomHorizontalFlip(),
+                                                    transforms.ToTensor()
+                                                    ])
+    now_dataset = MyDataset(images, transform=data_transform)
+    dataset_at = time.time()
 
-    for fname in images:
-        #open file with opencv
+    train_loader = DataLoader(now_dataset, batch_size=1,
+                          num_workers=0, drop_last=False, shuffle=True, pin_memory=True)
+    loader_at = time.time()
 
-        # set timer
-        start = time.time()
+    dataset_time = (dataset_at-start_at)*1000
+    loader_time = (loader_at-dataset_at)*1000
 
-        # print(os.path.getsize(fname)/1024)
-        #do augmentation
-        img = cv2.imread(fname)
-        readtime = time.time()
-        # print(img.shape)
-        
-        img = cv2.resize(img, dsize=(240, 240),interpolation=cv2.INTER_LINEAR)
-        img = brightness(img, 10)
-        img = contrast(img, 1, 1.2)
-        img = horizontal_flip(img, 1)
-        img = rotation(img, 180)
-        img = horizontal_shift(img, 0.2)
-        #if random.uniform(0,1) > 0.5:
-        img = vertical_flip(img, 1)
-        
-        # file_name = dir + str(i) + '.png'
-        # #file_name = 'aug_image/' + str(i) + '.png'
-        # cv2.imwrite(file_name, img)
-        # i = i + 1
-        # if i > 10000:
-        #     break
+    print(f"{dataset_time:.4f} {loader_time:.4f}")
 
-        end = time.time()
-        reading = (readtime-start)*1000
-        transforming = (end-readtime)*1000
-        print(f"read:{reading:.4f}, augment:{transforming:.4f}") # miliseconds
-
+    loop_at = time.time()
+    for image in train_loader:
+        unit_at = time.time()
+        diff_time = (unit_at-loop_at)*1000
+        print(f"{diff_time:.4f}")
+        loop_at = time.time()
 
 if __name__ == "__main__":
     # run main program
