@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 long long current_timestamp() {
     struct timeval te; 
     gettimeofday(&te, NULL); // get current time
-    long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000; // calculate milliseconds
+    long long milliseconds = te.tv_sec*1000000LL + te.tv_usec; // calculate milliseconds
     // printf("milliseconds: %lld\n", milliseconds);
     return milliseconds;
 }
@@ -229,6 +229,7 @@ int main(int argc, char **argv)
    MMAL_BOOL_T eos_sent = MMAL_FALSE, eos_received = MMAL_FALSE;
    unsigned int in_count = 0, out_count = 0;
    MMAL_BUFFER_HEADER_T *buffer;
+   int64_t curr_time = 0;
 
    if (argc < 2)
    {
@@ -285,15 +286,16 @@ int main(int argc, char **argv)
    CHECK_STATUS(status, "failed to commit format");
 
    /* Display the output port format */
-   fprintf(stderr, "%s\n", decoder->output[0]->name);
-   fprintf(stderr, " type: %i, fourcc: %4.4s\n", format_out->type, (char *)&format_out->encoding);
-   fprintf(stderr, " bitrate: %i, framed: %i\n", format_out->bitrate,
-           !!(format_out->flags & MMAL_ES_FORMAT_FLAG_FRAMED));
-   fprintf(stderr, " extra data: %i, %p\n", format_out->extradata_size, format_out->extradata);
-   fprintf(stderr, " width: %i, height: %i, (%i,%i,%i,%i)\n",
-           format_out->es->video.width, format_out->es->video.height,
-           format_out->es->video.crop.x, format_out->es->video.crop.y,
-           format_out->es->video.crop.width, format_out->es->video.crop.height);
+   // #uitaek
+   // fprintf(stderr, "%s\n", decoder->output[0]->name);
+   // fprintf(stderr, " type: %i, fourcc: %4.4s\n", format_out->type, (char *)&format_out->encoding);
+   // fprintf(stderr, " bitrate: %i, framed: %i\n", format_out->bitrate,
+   //         !!(format_out->flags & MMAL_ES_FORMAT_FLAG_FRAMED));
+   // fprintf(stderr, " extra data: %i, %p\n", format_out->extradata_size, format_out->extradata);
+   // fprintf(stderr, " width: %i, height: %i, (%i,%i,%i,%i)\n",
+   //         format_out->es->video.width, format_out->es->video.height,
+   //         format_out->es->video.crop.x, format_out->es->video.crop.y,
+   //         format_out->es->video.crop.width, format_out->es->video.crop.height);
 
    /* The format of both ports is now set so we can get their buffer requirements and create
     * our buffer headers. We use the buffer pool API to create these. */
@@ -361,9 +363,11 @@ int main(int argc, char **argv)
          if(!buffer->length) eos_sent = MMAL_TRUE;
 
          buffer->flags = buffer->length ? 0 : MMAL_BUFFER_HEADER_FLAG_EOS;
-         // buffer->pts = buffer->dts = MMAL_TIME_UNKNOWN;
-         buffer->pts = current_timestamp();
-         buffer->dts = MMAL_TIME_UNKNOWN;
+         buffer->pts = buffer->dts = MMAL_TIME_UNKNOWN;
+         curr_time = current_timestamp();
+	 //buffer->pts = current_timestamp();
+	 printf(">>>>>>>> start pts:%lld\n", curr_time); 
+         //buffer->dts = MMAL_TIME_UNKNOWN;
          //fprintf(stderr, "sending %i bytes\n", (int)buffer->length);
          status = mmal_port_send_buffer(decoder->input[0], buffer);
          CHECK_STATUS(status, "failed to send buffer");
@@ -388,14 +392,15 @@ int main(int argc, char **argv)
                MMAL_EVENT_FORMAT_CHANGED_T *event = mmal_event_format_changed_get(buffer);
                if (event)
                {
-                  fprintf(stderr, "----------Port format changed----------\n");
-                  log_format(decoder->output[0]->format, decoder->output[0]);
-                  fprintf(stderr, "-----------------to---------------------\n");
-                  log_format(event->format, 0);
-                  fprintf(stderr, " buffers num (opt %i, min %i), size (opt %i, min: %i)\n",
-                           event->buffer_num_recommended, event->buffer_num_min,
-                           event->buffer_size_recommended, event->buffer_size_min);
-                  fprintf(stderr, "----------------------------------------\n");
+                  // #uitaek
+                  // fprintf(stderr, "----------Port format changed----------\n");
+                  // log_format(decoder->output[0]->format, decoder->output[0]);
+                  // fprintf(stderr, "-----------------to---------------------\n");
+                  // log_format(event->format, 0);
+                  // fprintf(stderr, " buffers num (opt %i, min %i), size (opt %i, min: %i)\n",
+                  //          event->buffer_num_recommended, event->buffer_num_min,
+                  //          event->buffer_size_recommended, event->buffer_size_min);
+                  // fprintf(stderr, "----------------------------------------\n");
                }
                mmal_buffer_header_release(buffer);
                mmal_port_disable(decoder->output[0]);
@@ -435,13 +440,13 @@ int main(int argc, char **argv)
          }
          else
          {
-            fprintf(stderr, "decoded frame (flags %x, size %d) count %d\n", buffer->flags, buffer->length, out_count);
+            // #uitaek
+            // fprintf(stderr, "decoded frame (flags %x, size %d) count %d\n", buffer->flags, buffer->length, out_count);
 
             // Do something here with the content of the buffer
             // #hong where you would want to do something with the decoded image.
-            buffer->dts = current_timestamp();
-            int64_t diff_t = buffer->dts - buffer->pts;
-            printf("%ld \n", diff_t);
+            int64_t diff_t = current_timestamp() - curr_time;
+            printf("> diff: %lld \n", diff_t);
 
             mmal_buffer_header_release(buffer);
 
@@ -459,7 +464,7 @@ int main(int argc, char **argv)
    }
 
    /* Stop decoding */
-   fprintf(stderr, "stop decoding\n");
+   // fprintf(stderr, "stop decoding\n"); #uitaek
 
    /* Stop everything. Not strictly necessary since mmal_component_destroy()
     * will do that anyway */
