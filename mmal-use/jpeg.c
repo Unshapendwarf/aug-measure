@@ -340,7 +340,8 @@ int main(int argc, char **argv)
    CHECK_STATUS(status, "failed to enable decoder component");
 
    /* Start decoding */
-   fprintf(stderr, "start decoding\n");
+   // #uitaek
+   // fprintf(stderr, "start decoding\n");
 
    /* This is the main processing loop */
    while(!eos_received && out_count < 10000)
@@ -366,7 +367,6 @@ int main(int argc, char **argv)
          buffer->pts = buffer->dts = MMAL_TIME_UNKNOWN;
          curr_time = current_timestamp();
 	 //buffer->pts = current_timestamp();
-	 printf(">>>>>>>> start pts:%lld\n", curr_time); 
          //buffer->dts = MMAL_TIME_UNKNOWN;
          //fprintf(stderr, "sending %i bytes\n", (int)buffer->length);
          status = mmal_port_send_buffer(decoder->input[0], buffer);
@@ -386,7 +386,8 @@ int main(int argc, char **argv)
 
          if (buffer->cmd)
          {
-            fprintf(stderr, "received event length %d, %4.4s\n", buffer->length, (char *)&buffer->cmd);
+            // #uitaek 
+	    // fprintf(stderr, "received event length %d, %4.4s\n", buffer->length, (char *)&buffer->cmd);
             if (buffer->cmd == MMAL_EVENT_FORMAT_CHANGED)
             {
                MMAL_EVENT_FORMAT_CHANGED_T *event = mmal_event_format_changed_get(buffer);
@@ -410,7 +411,8 @@ int main(int argc, char **argv)
                {
                   buffer = mmal_queue_wait(context.queue);
                   mmal_buffer_header_release(buffer);
-                  fprintf(stderr, "Retrieved buffer %p\n", buffer);
+                  // #uitaek
+		  // fprintf(stderr, "Retrieved buffer %p\n", buffer);
                }
 
                //Assume we can't reuse the output buffers, so have to disable, destroy
